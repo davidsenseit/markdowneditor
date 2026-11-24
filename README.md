@@ -4,7 +4,7 @@ En fristående Markdowneditor med svensk meny, förhandsgranskning och stöd fö
 
 ## Använd editorn
 
-[Ladda ned markdowneditor.html](https://raw.githubusercontent.com/davidsenseit/markdowneditor/main/markdowneditor.html) och öppna filen i webbläsaren. Om webbläsaren visar källkoden kan du spara sidan som `markdowneditor.html` och sedan öppna den sparade filen. Editorn fungerar offline och kan kopieras mellan projekt som en enda fil.
+[Ladda ned ZIP-filen](https://github.com/davidsenseit/markdowneditor/archive/refs/heads/main.zip), packa upp den och öppna `markdowneditor.html` i webbläsaren. Editorn fungerar offline och kan kopieras mellan projekt som en enda fil.
 
 Under **Hjälp** finns en guide och kopierbara exempel för Markdown och Mermaid.
 
