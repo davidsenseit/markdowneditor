@@ -22,6 +22,7 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
 .filebar button:hover:not(:disabled){background:#e3efee}.filebar button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 .filebar button:disabled{opacity:.55;cursor:default}#file-save{background:var(--teal);border-color:var(--teal);color:white}
 #file-save:hover:not(:disabled){background:#095956}#file-state{margin-left:.35rem;overflow-wrap:anywhere}
+#file-dirty:not([hidden]){display:inline-block;margin-inline-start:.35rem;padding:.1rem .4rem;border:1px solid #b8c9cb;border-radius:5px;background:#e3efee}
 
 @media (width > 800px) {
   body {
@@ -103,7 +104,7 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
   <button id="file-save" type="button" aria-keyshortcuts="Control+s Meta+s">Spara</button>
   <button id="file-save-as" type="button">Spara som</button>
   <input id="file-input" type="file" accept=".md,.markdown,.txt" hidden>
-  <span id="file-state" class="muted" aria-live="polite"></span>
+  <span id="file-state" class="muted" aria-live="polite"><span id="file-name"></span><span id="file-dirty" hidden>Osparade ändringar</span></span>
   <button id="help-open" class="help-button" type="button" aria-haspopup="dialog">Hjälp</button>
 </div>
 <div id="status" class="status muted" role="status"></div>
@@ -8192,7 +8193,8 @@ let renderQueue = Promise.resolve();
 const engine = globalThis.mermaid;
 engine.initialize({startOnLoad:false,securityLevel:'strict',suppressErrorRendering:true,layout:'elk'});
 const fileInput = byId('file-input');
-const fileState = byId('file-state');
+const fileNameLabel = byId('file-name');
+const fileDirtyLabel = byId('file-dirty');
 const fileButtons = [...document.querySelectorAll('.filebar button:not(.help-button)')];
 const pickerOptions = {
   id: 'markdowneditor',
@@ -8222,7 +8224,8 @@ function isDirty() {
 }
 
 function updateFileState() {
-  fileState.textContent = fileName + (isDirty() ? ' · Osparade ändringar' : '');
+  fileNameLabel.textContent = fileName;
+  fileDirtyLabel.hidden = !isDirty();
 }
 
 function remember() {
@@ -8347,7 +8350,6 @@ function saveFile(saveAs = false) {
       }
       fileHandle = handle;
       fileName = handle.name;
-      status.textContent = 'Sparat i ' + fileName + '.';
     }
     savedText = markdown;
     updateFileState();
