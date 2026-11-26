@@ -109,7 +109,7 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
   body{display:block;height:auto;margin:0;background:white;color:black}
   body > :not(main),main > :not(.panes),.panes > :not(#preview-card),#preview-card > :not(#preview){display:none}
   main,.panes,#preview-card{display:block;width:auto;max-width:none;margin:0;padding:0;border:0;border-radius:0;overflow:visible}
-  #preview-card #preview{display:block;width:auto;height:auto;min-height:0;padding:0;overflow:visible}
+  #preview-card #preview{display:block;width:auto;height:auto;min-height:0;padding:0;overflow:visible;font-family:var(--preview-font,Arial,sans-serif);font-size:var(--preview-size,1rem)}
   #preview :is(h1,h2,h3,h4,h5,h6){break-after:avoid}
   #preview :is(tr,.diagram){break-inside:avoid}
   #preview pre{overflow:visible;white-space:pre-wrap}
@@ -8596,6 +8596,12 @@ exportPdf.addEventListener('click', async () => {
       clearTimeout(renderTimer);
       markdown = source.value;
       rendered = await render();
+      // Resolve the rendered text's local fonts before opening the print dialog.
+      if (rendered) {
+        applyPreviewSettings();
+        preview.getBoundingClientRect();
+        await document.fonts.ready;
+      }
     } while (source.value !== markdown);
     if (rendered) window.print();
   } finally {
