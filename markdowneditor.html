@@ -24,7 +24,7 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
 #file-save:hover:not(:disabled){background:#095956}#file-state{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin-left:.35rem;overflow-wrap:anywhere}
 #unsaved-changes{padding:.1rem .45rem;border:1px solid #decea7;border-radius:5px;background:#fff7e5;color:#614b20}
 
-@media (width > 800px) {
+@media screen and (width > 800px) {
   body {
     display:flex;
     flex-direction:column;
@@ -87,11 +87,35 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
 .card.is-collapsed .pane-toggle{order:-1}
 .card.is-collapsed h2{writing-mode:vertical-rl}
 .card.is-collapsed #source,.card.is-collapsed #preview{display:none}
-@media (max-width:800px) {
+@media screen and (max-width:800px) {
   .panes.has-collapsed-pane #source,.panes.has-collapsed-pane #preview {
     height:calc(100vh - 11rem);
     height:max(450px,calc(100dvh - 11rem));
   }
+}
+.preview-tools{display:flex;flex:none;flex-wrap:wrap;align-items:end;gap:.5rem .75rem;padding:.6rem 1rem;border-bottom:1px solid var(--line)}
+.preview-tools label{display:grid;gap:.2rem;font-size:.85rem}
+.preview-tools :is(select,button){font:inherit;color:inherit;background:white;border:1px solid var(--line);border-radius:6px;padding:.4rem .55rem}
+.preview-tools button{cursor:pointer}
+.preview-tools button:hover:not(:disabled){background:#e3efee}
+.preview-tools :is(select,button):focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.preview-tools button:disabled{opacity:.55;cursor:default}
+.card.is-collapsed .preview-tools{display:none}
+#preview{font-family:var(--preview-font,Arial,sans-serif);font-size:var(--preview-size,1rem)}
+#preview th,#preview td{padding:.4em .6em}
+
+@media print {
+  @page{size:A4;margin:16mm}
+  body{display:block;height:auto;margin:0;background:white;color:black}
+  body > :not(main),main > :not(.panes),.panes > :not(#preview-card),#preview-card > :not(#preview){display:none}
+  main,.panes,#preview-card{display:block;width:auto;max-width:none;margin:0;padding:0;border:0;border-radius:0;overflow:visible}
+  #preview-card #preview{display:block;width:auto;height:auto;min-height:0;padding:0;overflow:visible}
+  #preview :is(h1,h2,h3,h4,h5,h6){break-after:avoid}
+  #preview :is(tr,.diagram){break-inside:avoid}
+  #preview pre{overflow:visible;white-space:pre-wrap}
+  #preview img{max-width:100%;height:auto}
+  #preview .diagram{overflow:visible;print-color-adjust:exact}
+  #preview svg{max-width:100%!important;height:auto}
 }
 .developer-link{margin-inline-start:auto;color:#c4d5db;font-size:.9rem;text-decoration:none}
 .developer-link:hover,.developer-link:focus-visible{color:white;text-decoration:underline}
@@ -123,6 +147,27 @@ main{padding:1rem max(4vw,1rem);max-width:1900px;margin:auto}.panes{display:grid
     <div class="bar pane-bar">
       <h2>Förhandsgranskning</h2>
       <button class="pane-toggle" id="toggle-preview" type="button" aria-controls="preview" aria-expanded="true" aria-label="Fäll ihop förhandsgranskningen" title="Fäll ihop förhandsgranskningen">›</button>
+    </div>
+    <div class="preview-tools" role="group" aria-label="Förhandsgranskningens inställningar">
+      <label>Typsnitt
+        <select id="preview-font">
+          <option value="Arial" data-fallback="sans-serif">Arial</option>
+          <option value="Calibri" data-fallback="sans-serif">Calibri</option>
+          <option value="Garamond" data-fallback="serif">Garamond</option>
+          <option value="Georgia" data-fallback="serif">Georgia</option>
+          <option value="Times New Roman" data-fallback="serif">Times New Roman</option>
+        </select>
+      </label>
+      <label>Textstorlek
+        <select id="preview-size">
+          <option value="80">80 %</option>
+          <option value="90">90 %</option>
+          <option value="100" selected>100 %</option>
+          <option value="110">110 %</option>
+          <option value="120">120 %</option>
+        </select>
+      </label>
+      <button id="export-pdf" type="button">Exportera till PDF</button>
     </div>
     <div id="preview"></div>
   </section>
@@ -8222,6 +8267,35 @@ try {
   }
 } catch { /* Lokalt utkast kan saknas eller vara otillgängligt. */ }
 
+const previewFont = byId('preview-font');
+const previewSize = byId('preview-size');
+const previewSettingsKey = 'markdowneditor-preview-settings';
+
+function applyPreviewSettings() {
+  const font = previewFont.selectedOptions[0];
+  preview.style.setProperty('--preview-font', '"' + font.value + '", ' + font.dataset.fallback);
+  preview.style.setProperty('--preview-size', Number(previewSize.value) / 100 + 'rem');
+}
+
+try {
+  const settings = JSON.parse(localStorage.getItem(previewSettingsKey));
+  for (const [select, value] of [[previewFont, settings?.font], [previewSize, settings?.size]]) {
+    if ([...select.options].some(option => option.value === value)) select.value = value;
+  }
+} catch { /* Förhandsgranskningen fungerar även utan sparade inställningar. */ }
+
+applyPreviewSettings();
+for (const select of [previewFont, previewSize]) {
+  select.addEventListener('change', () => {
+    applyPreviewSettings();
+    try {
+      localStorage.setItem(previewSettingsKey, JSON.stringify({
+        font:previewFont.value, size:previewSize.value
+      }));
+    } catch { /* Inställningarna gäller fortfarande i det öppna fönstret. */ }
+  });
+}
+
 function isDirty() {
   return source.value !== savedText;
 }
@@ -8501,14 +8575,35 @@ function render() {
     if (!isCurrent()) return;
     updatingPreview = true;
     await renderMarkdown(markdown, preview, isCurrent);
-    if (isCurrent()) syncScroll(source, preview);
+    if (!isCurrent()) return false;
+    syncScroll(source, preview);
+    return true;
   }).catch(error => {
     status.textContent = 'Kunde inte visa förhandsgranskningen. ' + error.message;
+    return false;
   }).finally(() => {
     lastScrollTop.set(preview, preview.scrollTop);
     updatingPreview = false;
   });
+  return renderQueue;
 }
+
+const exportPdf = byId('export-pdf');
+exportPdf.addEventListener('click', async () => {
+  exportPdf.disabled = true;
+  try {
+    let markdown;
+    let rendered;
+    do {
+      clearTimeout(renderTimer);
+      markdown = source.value;
+      rendered = await render();
+    } while (source.value !== markdown);
+    if (rendered) window.print();
+  } finally {
+    exportPdf.disabled = false;
+  }
+});
 
 source.addEventListener('input',() => {
   updateFileState();
